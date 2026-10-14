@@ -88,6 +88,18 @@ h1 .nm{display:block;white-space:nowrap}
 .play{display:grid;gap:12px}
 .play.leaving{opacity:0;transform:translateY(12px);transition:opacity .28s ease-in, transform .28s ease-in}
 .green{position:relative;border-radius:18px;box-shadow:0 20px 32px -16px rgba(0,0,0,.6)}
+.green.punch{animation:punch .45s cubic-bezier(.2,.9,.3,1)}
+@keyframes punch{0%{transform:scale(1)}28%{transform:scale(1.035)}100%{transform:scale(1)}}
+.sound{
+  position:absolute;right:8px;bottom:8px;width:40px;height:40px;
+  display:grid;place-items:center;padding:0;cursor:pointer;
+  border:0;border-radius:9px;background:rgba(15,40,22,.72);color:var(--chalk);
+}
+.sound:hover{background:rgba(15,40,22,.9)}
+.sound:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.sound .x{display:none}
+.sound[aria-pressed="false"] .x{display:inline}
+.sound[aria-pressed="false"] .w{display:none}
 #course{display:block;width:100%;border-radius:18px;touch-action:none;cursor:grab}
 #course:active{cursor:grabbing}
 .hint{margin:0;min-height:1.5em;color:var(--chalk-dim);font-weight:600;text-align:center;text-wrap:balance}
@@ -200,6 +212,9 @@ h1 .nm{display:block;white-space:nowrap}
   <section class="play" id="play" aria-label="Play the hole">
     <div class="green" id="green">
       <canvas id="course" role="img" aria-label="A crazy golf hole. Drag back from the ball and let go to putt. The Yes cup is on the left. The No door is inside the windmill on the right."></canvas>
+      <button class="sound" id="sound" type="button" aria-pressed="true" aria-label="Sound" title="Sound">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M16 9l5 6M21 9l-5 6"/></svg>
+      </button>
     </div>
     <p class="hint" id="hint" aria-live="polite">Drag back from the ball and let go to putt.</p>
     <div class="answer">
@@ -471,7 +486,9 @@ h1 .nm{display:block;white-space:nowrap}
   let rot = Math.PI / 4;
   let strokes = 0, how = '', lipped = false, blockedThisShot = false, mode = 'play';
   let ball = { x: 0, y: 0, vx: 0, vy: 0, r: BR, hidden: false, inside: false };
-  let aim = null, sinkT = 0, sinkFrom = null, autoT = 0, autoFrom = null, tunnelT = 0, flagLift = 0;
+  let aim = null, sinkT = 0, sinkFrom = null, autoT = 0, autoFrom = null, tunnelT = 0;
+  const SINK_MS = 620;
+  let orbit = null, celebT = -1, windBoost = 0, fibers = [];
 
   function bladeBlocksDoor(){
     for (let k = 0; k < 4; k++){
@@ -542,7 +559,14 @@ h1 .nm{display:block;white-space:nowrap}
   }
 
   function step(dt){
-    if (!reduce) rot = (rot + .0327 * dt) % (Math.PI * 2);
+    if (!reduce) rot = (rot + .0327 * dt * (1 + windBoost)) % (Math.PI * 2);
+    windBoost *= Math.pow(.972, dt);
+    if (celebT >= 0) celebT += dt * 16.667;
+    for (let i = fibers.length - 1; i >= 0; i--){
+      const f = fibers[i];
+      f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= Math.pow(.9, dt); f.vy *= Math.pow(.9, dt); f.life -= dt;
+      if (f.life <= 0) fibers.splice(i, 1);
+    }
 
     if (state === 'rolling'){
       const sp = Math.hypot(ball.vx, ball.vy);
@@ -572,31 +596,29 @@ h1 .nm{display:block;white-space:nowrap}
       }
     } else if (state === 'sinking'){
       sinkT += dt * 16.667;
-      if (sinkT >= 260){ state = 'holed'; ball.hidden = true; onHoled(); }
+      if (sinkT >= SINK_MS){ state = 'holed'; ball.hidden = true; celebrate(); onHoled(); }
     }
-    if (state === 'holed' && flagLift < 1) flagLift = Math.min(1, flagLift + dt * .03);
   }
 
   function draw(){
     ctx.clearRect(0, 0, cw, ch);
     ctx.drawImage(staticLayer, 0, 0, cw, ch);
 
-    // flag pin
-    if (flagLift < 1){
-      const a = 1 - flagLift, lift = flagLift * 26;
-      ctx.save(); ctx.globalAlpha = a;
-      ctx.strokeStyle = 'rgba(5,20,10,.3)'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(cup.x, cup.y); ctx.lineTo(cup.x + 20, cup.y + 9); ctx.stroke();
-      const top = cup.y - 52 - lift;
-      ctx.strokeStyle = COL.chalk; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(cup.x, cup.y - lift); ctx.lineTo(cup.x, top); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cup.x + 1, top); ctx.lineTo(cup.x + 42, top + 11); ctx.lineTo(cup.x + 1, top + 22); ctx.closePath();
-      ctx.fillStyle = COL.enamel; ctx.fill();
-      ctx.fillStyle = COL.chalk; ctx.font = labelFont(10);
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('YES', cup.x + 16, top + 11.5);
-      ctx.restore();
+    // turf ripples from the cup
+    if (celebT >= 0){
+      [0, 150].forEach((s0) => {
+        const q = (celebT - s0) / 700;
+        if (q < 0 || q >= 1) return;
+        ctx.strokeStyle = 'rgba(245,243,234,' + ((1 - q) * .55).toFixed(3) + ')';
+        ctx.lineWidth = .6 + 2 * (1 - q);
+        ctx.beginPath(); ctx.arc(cup.x, cup.y, CUP_R + 4 + q * 48, 0, Math.PI * 2); ctx.stroke();
+      });
     }
+    fibers.forEach((f) => {
+      ctx.strokeStyle = f.c; ctx.globalAlpha = Math.min(1, f.life / 12); ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.lineTo(f.x + Math.cos(f.a) * f.len, f.y + Math.sin(f.a) * f.len); ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
 
     // windmill sails
     const b = wmBox();
@@ -617,6 +639,36 @@ h1 .nm{display:block;white-space:nowrap}
     }
     ctx.fillStyle = '#3A2A20'; ctx.beginPath(); ctx.arc(wm.x, wm.y, 6, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = COL.sun; ctx.beginPath(); ctx.arc(wm.x, wm.y, 2.2, 0, Math.PI * 2); ctx.fill();
+
+    // flag pin: planted, or tossed up spinning and planted again
+    {
+      let h = 0, spin = 0, sc = 1;
+      const t = celebT - 40, FLY = 860;
+      if (celebT >= 0 && !reduce && t > 0){
+        if (t < FLY){ const u = t / FLY, lift = 4 * u * (1 - u); h = 20 * lift; sc = 1 + lift; spin = Math.PI * 4 * u; }
+        else if (t < FLY + 520){ const w = (t - FLY) / 520; spin = .38 * Math.sin(w * Math.PI * 3) * (1 - w); }
+      }
+      if (h > 1){
+        const k = Math.max(0, 1 - (sc - 1) * .75);
+        ctx.fillStyle = 'rgba(5,20,10,' + (.28 * k).toFixed(3) + ')';
+        ctx.beginPath(); ctx.ellipse(cup.x + 8, cup.y + 2, 6 + 16 * k, 3 + 3 * k, 0, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.strokeStyle = 'rgba(5,20,10,.3)'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(cup.x, cup.y); ctx.lineTo(cup.x + 20, cup.y + 9); ctx.stroke();
+      }
+      ctx.save();
+      ctx.translate(cup.x, cup.y - h - 26);
+      ctx.rotate(spin);
+      ctx.scale(sc, sc);
+      ctx.strokeStyle = COL.chalk; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, 26); ctx.lineTo(0, -26); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(1, -26); ctx.lineTo(42, -15); ctx.lineTo(1, -4); ctx.closePath();
+      ctx.fillStyle = COL.enamel; ctx.fill();
+      ctx.fillStyle = COL.chalk; ctx.font = labelFont(10);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('YES', 16, -14.5);
+      ctx.restore();
+    }
 
     // aim line
     if (state === 'aim' && aim){
@@ -639,11 +691,17 @@ h1 .nm{display:block;white-space:nowrap}
     // ball
     if (!ball.hidden){
       let x = ball.x, y = ball.y, r = BR;
+      let shade = 0;
       if (state === 'sinking'){
-        const p = Math.min(1, sinkT / 260);
-        x = sinkFrom.x + (cup.x - sinkFrom.x) * p;
-        y = sinkFrom.y + (cup.y - sinkFrom.y) * p;
-        r = BR * (1 - .5 * p);
+        const p = Math.min(1, sinkT / SINK_MS), e = 1 - Math.pow(1 - p, 2);
+        const th = orbit.a0 + orbit.dir * Math.PI * 2 * 1.15 * e;
+        const rad = orbit.r0 * (1 - Math.pow(p, 3));
+        const ox = cup.x + Math.cos(th) * rad, oy = cup.y + Math.sin(th) * rad;
+        const blend = Math.min(1, p / .15);
+        x = sinkFrom.x + (ox - sinkFrom.x) * blend;
+        y = sinkFrom.y + (oy - sinkFrom.y) * blend;
+        r = BR * (1 - .4 * Math.pow(p, 4));
+        shade = .45 * Math.pow(p, 2);
       }
       ctx.fillStyle = 'rgba(5,20,10,.35)';
       ctx.beginPath(); ctx.ellipse(x + 2, y + 3, r, r * .8, 0, 0, Math.PI * 2); ctx.fill();
@@ -652,6 +710,7 @@ h1 .nm{display:block;white-space:nowrap}
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgba(28,26,21,.16)';
       [[.3, .2], [-.25, .35], [.05, -.3]].forEach((p) => { ctx.beginPath(); ctx.arc(x + p[0] * r, y + p[1] * r, .9, 0, Math.PI * 2); ctx.fill(); });
+      if (shade > 0){ ctx.fillStyle = 'rgba(7,13,9,' + shade.toFixed(3) + ')'; ctx.beginPath(); ctx.arc(x, y, r + .5, 0, Math.PI * 2); ctx.fill(); }
     }
   }
 
@@ -664,16 +723,36 @@ h1 .nm{display:block;white-space:nowrap}
   }
 
   /* ---------- sound (synthesized, original) ---------- */
-  let actx = null, noiseBuf = null, lastKnock = 0;
+  let actx = null, noiseBuf = null, lastKnock = 0, unlocked = false, soundOn = true;
+  try { soundOn = localStorage.getItem('swingyard-sound') !== 'off'; } catch (e) {}
   function audio(){
+    if (!soundOn) return null;
     if (!actx){
+      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       try { actx = new AC(); } catch (e) { return null; }
     }
-    if (actx.state === 'suspended'){ try { actx.resume(); } catch (e) {} }
+    if (actx.state !== 'running'){ try { const r = actx.resume(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
+    if (!unlocked){
+      try {
+        const b = actx.createBuffer(1, 1, 22050), src = actx.createBufferSource();
+        src.buffer = b; src.connect(actx.destination); src.start(0); unlocked = true;
+      } catch (e) {}
+    }
     return actx;
   }
+  ['touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, () => { if (soundOn) audio(); }, { capture: true, passive: true }));
+  const soundBtn = $('sound');
+  function paintSound(){ soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false'); soundBtn.title = soundOn ? 'Sound on' : 'Sound off'; }
+  soundBtn.addEventListener('click', () => {
+    soundOn = !soundOn;
+    try { localStorage.setItem('swingyard-sound', soundOn ? 'on' : 'off'); } catch (e) {}
+    if (soundOn){ const a = audio(); if (a) click(a.currentTime, 2600, .4, .03); }
+    else if (actx){ try { actx.suspend(); } catch (e) {} }
+    paintSound();
+  });
+  paintSound();
   function noise(){
     if (!noiseBuf){
       noiseBuf = actx.createBuffer(1, Math.round(actx.sampleRate * .25), actx.sampleRate);
@@ -705,16 +784,30 @@ h1 .nm{display:block;white-space:nowrap}
     tone(190, t, .07, 'triangle', .18 + power * .2);
   }
   function knock(v){
-    const s = Math.abs(v); if (s < 1.2 || !actx) return;
+    const s = Math.abs(v); if (s < 1.2 || !actx || !soundOn) return;
     const now = performance.now(); if (now - lastKnock < 70) return; lastKnock = now;
     const t = actx.currentTime, k = Math.min(1, s / 12);
     tone(300 + Math.random() * 40, t, .06, 'triangle', .05 + k * .2);
     click(t, 1100, .12 + k * .3, .03);
   }
-  function sfxCup(){
+  function sfxHole(){
     const a = audio(); if (!a) return; const t = a.currentTime;
-    [0, .055, .1, .135].forEach((d, i) => click(t + d, 3200 - i * 300, .35 - i * .06, .025));
-    tone(130, t + .16, .16, 'sine', .35);
+    [0, .11, .2, .28, .35, .41, .46, .5].forEach((d, i) => click(t + d, 2300 + i * 110, .14 + i * .025, .02));
+    [.58, .61, .635].forEach((d, i) => click(t + d, 3400 - i * 450, .42 - i * .1, .025));
+    tone(118, t + .6, .22, 'sine', .42);
+  }
+  function swoosh(at){
+    const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = noise(); f.type = 'bandpass'; f.Q.value = 2.5;
+    f.frequency.setValueAtTime(500, at); f.frequency.exponentialRampToValueAtTime(2600, at + .22);
+    g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(.32, at + .08); g.gain.exponentialRampToValueAtTime(.0001, at + .24);
+    src.connect(f); f.connect(g); g.connect(actx.destination);
+    src.start(at); src.stop(at + .26);
+  }
+  function sfxToss(){
+    const a = audio(); if (!a) return; const t = a.currentTime;
+    swoosh(t + .04);
+    tone(240, t + .9, .07, 'triangle', .3); click(t + .9, 900, .35, .03);
   }
   function sfxTunnel(){
     const a = audio(); if (!a) return; const t = a.currentTime;
@@ -777,9 +870,29 @@ h1 .nm{display:block;white-space:nowrap}
   }
   function sink(){
     if (state === 'sinking' || state === 'holed') return;
+    const dx = ball.x - cup.x, dy = ball.y - cup.y, d = Math.hypot(dx, dy);
+    const cross = dx * ball.vy - dy * ball.vx;
+    orbit = {
+      a0: d > 2 ? Math.atan2(dy, dx) : Math.random() * Math.PI * 2,
+      r0: d > 2 ? Math.min(Math.max(d, 5), CUP_R - 2) : CUP_R - 3,
+      dir: cross === 0 ? (Math.random() < .5 ? -1 : 1) : (cross > 0 ? 1 : -1)
+    };
     sinkFrom = { x: ball.x, y: ball.y };
-    ball.vx = ball.vy = 0; sinkT = 0; state = 'sinking';
-    sfxCup();
+    ball.vx = ball.vy = 0; sinkT = reduce ? SINK_MS : 0; state = 'sinking';
+    sfxHole();
+  }
+  function celebrate(){
+    celebT = 0;
+    if (reduce) return;
+    windBoost = 12;
+    const cols = [COL.turfLite, '#9ED19F', COL.chalk];
+    for (let i = 0; i < 24; i++){
+      const a = Math.random() * Math.PI * 2, sp = 1.4 + Math.random() * 2.6;
+      fibers.push({ x: cup.x + Math.cos(a) * CUP_R, y: cup.y + Math.sin(a) * CUP_R, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+        a: a + (Math.random() - .5), len: 2.5 + Math.random() * 3, life: 26 + Math.random() * 14, c: cols[i % 3] });
+    }
+    green.style.transformOrigin = cup.x + 'px ' + cup.y + 'px';
+    green.classList.remove('punch'); void green.offsetWidth; green.classList.add('punch');
   }
   function onRest(){
     const d = Math.hypot(cup.x - ball.x, cup.y - ball.y);
@@ -798,12 +911,13 @@ h1 .nm{display:block;white-space:nowrap}
     return strokes === 1 ? 'Hole in one.' : 'Holed in ' + strokes + '.';
   }
   function onHoled(){
-    setTimeout(sfxJingle, 140);
+    if (reduce) sfxJingle();
+    else { sfxToss(); setTimeout(sfxJingle, 900); }
     say(scoreLine());
     gimmeBtn.hidden = true;
-    try { if (navigator.vibrate) navigator.vibrate([20, 50, 40]); } catch (e) {}
+    try { if (navigator.vibrate) navigator.vibrate([25, 860, 35]); } catch (e) {}
     store.set({ r: 'yes', how, strokes, when: when() });
-    setTimeout(() => showCard('yes', true), reduce ? 0 : 1100);
+    setTimeout(() => showCard('yes', true), reduce ? 0 : 1750);
   }
   function tapIn(kind){
     if (mode !== 'play' || state === 'sinking' || state === 'holed' || state === 'tunnel') return;
@@ -811,7 +925,7 @@ h1 .nm{display:block;white-space:nowrap}
     how = kind; aim = null;
     if (kind === 'gimme') strokes++;
     ball.vx = ball.vy = 0; ball.hidden = false;
-    if (reduce){ sinkFrom = { x: cup.x, y: cup.y }; sinkT = 260; state = 'sinking'; return; }
+    if (reduce){ ball.x = cup.x; ball.y = cup.y; sink(); return; }
     autoFrom = { x: ball.x, y: ball.y }; autoT = 0; state = 'auto';
   }
   yesBtn.addEventListener('click', () => tapIn('tap'));
@@ -910,7 +1024,7 @@ h1 .nm{display:block;white-space:nowrap}
   function showPlay(reset){
     mode = 'play';
     if (reset){
-      strokes = 0; how = ''; flagLift = 0; ball.hidden = false; ball.vx = ball.vy = 0;
+      strokes = 0; how = ''; celebT = -1; windBoost = 0; fibers = []; ball.hidden = false; ball.vx = ball.vy = 0;
       state = 'rest'; gimmeBtn.hidden = true;
       say('Drag back from the ball and let go to putt.');
     }
@@ -949,7 +1063,7 @@ h1 .nm{display:block;white-space:nowrap}
 
   const saved = store.get();
   if (saved && saved.r === 'yes'){
-    how = saved.how || 'tap'; strokes = saved.strokes | 0; state = 'holed'; ball.hidden = true; flagLift = 1;
+    how = saved.how || 'tap'; strokes = saved.strokes | 0; state = 'holed'; ball.hidden = true;
     if (saved.when) document.querySelectorAll('input[name="tee"]').forEach((r) => { r.checked = r.value === saved.when; });
     showCard('yes', false);
   }
