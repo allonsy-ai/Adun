@@ -485,10 +485,10 @@ h1 .nm{display:block;white-space:nowrap}
   function collide(){
     // rails
     const minX = R + BR, maxX = cw - R - BR, minY = R + BR, maxY = ch - R - BR;
-    if (ball.x < minX){ ball.x = minX; ball.vx = Math.abs(ball.vx) * .72; }
-    if (ball.x > maxX){ ball.x = maxX; ball.vx = -Math.abs(ball.vx) * .72; }
-    if (ball.y < minY){ ball.y = minY; ball.vy = Math.abs(ball.vy) * .72; }
-    if (ball.y > maxY){ ball.y = maxY; ball.vy = -Math.abs(ball.vy) * .72; }
+    if (ball.x < minX){ ball.x = minX; knock(ball.vx); ball.vx = Math.abs(ball.vx) * .72; }
+    if (ball.x > maxX){ ball.x = maxX; knock(ball.vx); ball.vx = -Math.abs(ball.vx) * .72; }
+    if (ball.y < minY){ ball.y = minY; knock(ball.vy); ball.vy = Math.abs(ball.vy) * .72; }
+    if (ball.y > maxY){ ball.y = maxY; knock(ball.vy); ball.vy = -Math.abs(ball.vy) * .72; }
 
     // brick planter
     {
@@ -497,7 +497,7 @@ h1 .nm{display:block;white-space:nowrap}
         const nx = dx / d, ny = dy / d;
         ball.x = isle.x + nx * min; ball.y = isle.y + ny * min;
         const dot = ball.vx * nx + ball.vy * ny;
-        if (dot < 0){ ball.vx -= 1.7 * dot * nx; ball.vy -= 1.7 * dot * ny; }
+        if (dot < 0){ knock(dot); ball.vx -= 1.7 * dot * nx; ball.vy -= 1.7 * dot * ny; }
       }
     }
 
@@ -505,7 +505,7 @@ h1 .nm{display:block;white-space:nowrap}
     const b = wmBox();
     if (ball.vy < 0 && ball.x > b.d1 + 2 && ball.x < b.d2 - 2 && ball.y - BR < b.y2 && ball.y > b.y2 - 26){
       if (bladeBlocksDoor()){
-        ball.y = b.y2 + BR; ball.vy = Math.abs(ball.vy) * .55; ball.vx *= .8;
+        knock(ball.vy); ball.y = b.y2 + BR; ball.vy = Math.abs(ball.vy) * .55; ball.vx *= .8;
         blockedThisShot = true;
       } else {
         enterTunnel();
@@ -520,7 +520,7 @@ h1 .nm{display:block;white-space:nowrap}
       const nx = dx / d, ny = dy / d;
       ball.x = qx + nx * BR; ball.y = qy + ny * BR;
       const dot = ball.vx * nx + ball.vy * ny;
-      if (dot < 0){ ball.vx -= 1.65 * dot * nx; ball.vy -= 1.65 * dot * ny; }
+      if (dot < 0){ knock(dot); ball.vx -= 1.65 * dot * nx; ball.vy -= 1.65 * dot * ny; }
     }
   }
 
@@ -663,6 +663,74 @@ h1 .nm{display:block;white-space:nowrap}
     requestAnimationFrame(frame);
   }
 
+  /* ---------- sound (synthesized, original) ---------- */
+  let actx = null, noiseBuf = null, lastKnock = 0;
+  function audio(){
+    if (!actx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { actx = new AC(); } catch (e) { return null; }
+    }
+    if (actx.state === 'suspended'){ try { actx.resume(); } catch (e) {} }
+    return actx;
+  }
+  function noise(){
+    if (!noiseBuf){
+      noiseBuf = actx.createBuffer(1, Math.round(actx.sampleRate * .25), actx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    return noiseBuf;
+  }
+  function tone(freq, at, dur, type, peak, glideTo){
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, at);
+    if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, at + dur);
+    g.gain.setValueAtTime(.0001, at);
+    g.gain.exponentialRampToValueAtTime(peak, at + .008);
+    g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(at); o.stop(at + dur + .03);
+  }
+  function click(at, freq, peak, dur){
+    const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = noise(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 6;
+    g.gain.setValueAtTime(peak, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+    src.connect(f); f.connect(g); g.connect(actx.destination);
+    src.start(at); src.stop(at + dur + .02);
+  }
+  function sfxPutt(power){
+    const a = audio(); if (!a) return; const t = a.currentTime;
+    click(t, 2600, .5 + power * .5, .04);
+    tone(190, t, .07, 'triangle', .18 + power * .2);
+  }
+  function knock(v){
+    const s = Math.abs(v); if (s < 1.2 || !actx) return;
+    const now = performance.now(); if (now - lastKnock < 70) return; lastKnock = now;
+    const t = actx.currentTime, k = Math.min(1, s / 12);
+    tone(300 + Math.random() * 40, t, .06, 'triangle', .05 + k * .2);
+    click(t, 1100, .12 + k * .3, .03);
+  }
+  function sfxCup(){
+    const a = audio(); if (!a) return; const t = a.currentTime;
+    [0, .055, .1, .135].forEach((d, i) => click(t + d, 3200 - i * 300, .35 - i * .06, .025));
+    tone(130, t + .16, .16, 'sine', .35);
+  }
+  function sfxTunnel(){
+    const a = audio(); if (!a) return; const t = a.currentTime;
+    tone(420, t, .55, 'triangle', .12, 110);
+    tone(560, t + .62, .12, 'square', .04, 900);
+  }
+  function sfxJingle(){
+    const a = audio(); if (!a) return; const t = a.currentTime + .02;
+    const notes = [523.25, 659.25, 783.99, 659.25, 1046.5];
+    notes.forEach((f, i) => {
+      const last = i === notes.length - 1;
+      tone(f, t + i * .085, last ? .42 : .1, 'square', last ? .07 : .055);
+      tone(f / 2, t + i * .085, last ? .42 : .1, 'triangle', last ? .08 : .05);
+    });
+  }
+
   /* ---------- input ---------- */
   function point(e){
     const r = canvas.getBoundingClientRect();
@@ -675,6 +743,7 @@ h1 .nm{display:block;white-space:nowrap}
   canvas.addEventListener('pointerdown', (e) => {
     if (state !== 'rest' || mode !== 'play') return;
     e.preventDefault();
+    audio();
     const p = point(e);
     aim = { x0: p.x, y0: p.y, x: p.x, y: p.y };
     state = 'aim';
@@ -693,6 +762,7 @@ h1 .nm{display:block;white-space:nowrap}
     ball.vx = v.dx * speed; ball.vy = v.dy * speed;
     strokes++; lipped = false; blockedThisShot = false; how = 'putt';
     state = 'rolling';
+    sfxPutt(v.power);
   }
   canvas.addEventListener('pointerup', release);
   canvas.addEventListener('pointercancel', () => { if (state === 'aim'){ aim = null; state = 'rest'; } });
@@ -702,12 +772,14 @@ h1 .nm{display:block;white-space:nowrap}
 
   function enterTunnel(){
     state = 'tunnel'; tunnelT = 0; ball.hidden = true; ball.vx = ball.vy = 0; how = 'tunnel';
+    sfxTunnel();
     say("That's the No door. The windmill tunnel comes out at Yes.");
   }
   function sink(){
     if (state === 'sinking' || state === 'holed') return;
     sinkFrom = { x: ball.x, y: ball.y };
     ball.vx = ball.vy = 0; sinkT = 0; state = 'sinking';
+    sfxCup();
   }
   function onRest(){
     const d = Math.hypot(cup.x - ball.x, cup.y - ball.y);
@@ -726,6 +798,7 @@ h1 .nm{display:block;white-space:nowrap}
     return strokes === 1 ? 'Hole in one.' : 'Holed in ' + strokes + '.';
   }
   function onHoled(){
+    setTimeout(sfxJingle, 140);
     say(scoreLine());
     gimmeBtn.hidden = true;
     try { if (navigator.vibrate) navigator.vibrate([20, 50, 40]); } catch (e) {}
@@ -734,6 +807,7 @@ h1 .nm{display:block;white-space:nowrap}
   }
   function tapIn(kind){
     if (mode !== 'play' || state === 'sinking' || state === 'holed' || state === 'tunnel') return;
+    audio();
     how = kind; aim = null;
     if (kind === 'gimme') strokes++;
     ball.vx = ball.vy = 0; ball.hidden = false;
