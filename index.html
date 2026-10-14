@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#173F22">
+<meta name="description" content="A crazy golf date invite from Tayo.">
+<title>Swing Yard Date</title>
+<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Reenie+Beanie&family=Schibsted+Grotesk:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: one crazy golf hole on carpet turf. A painted hole sign sits on the top rail, the playable green below it, the Yes plank under the green; holing out hands over a printed scorecard */
+:root{
+  --turf:#2F7A3B;
+  --turf-deep:#173F22;
+  --turf-lite:#3D8C49;
+  --rail:#B7814A;
+  --rail-dark:#8B5A2C;
+  --rail-lite:#D39C61;
+  --enamel:#CC2F1E;
+  --enamel-edge:#8F1D11;
+  --sun:#F2C230;
+  --sun-edge:#B88F12;
+  --chalk:#F5F3EA;
+  --chalk-dim:#CFE3CF;
+  --ink:#1C1A15;
+  --card:#FAFAF5;
+  --print:#1F6B3A;
+  --pencil:#4B4B4F;
+  --display:"Bungee", "Arial Black", sans-serif;
+  --body:"Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --hand:"Reenie Beanie", "Bradley Hand", "Segoe Print", cursive;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+html,body{min-height:100%}
+body{
+  margin:0;
+  background-color:var(--turf-deep);
+  color:var(--chalk);
+  font:400 16px/1.5 var(--body);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:24px 40px;
+  caret-color:var(--enamel);
+}
+::selection{background:var(--sun);color:var(--ink)}
+button,a{-webkit-tap-highlight-color:transparent}
+
+.course{max-width:440px;margin:0 auto;display:grid;gap:14px}
+
+/* ---------- hole sign ---------- */
+.sign{
+  position:relative;z-index:2;
+  display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;
+  padding:16px 18px 25px;
+  background:linear-gradient(var(--sun), var(--sun)) top / 100% calc(100% - 7px) no-repeat, var(--sun-edge);
+  color:var(--ink);
+  border-radius:12px;
+  box-shadow:0 16px 24px -12px rgba(0,0,0,.55);
+  margin-bottom:-6px;
+}
+.sign-paint{position:absolute;inset:4px 4px 11px;border:2px solid var(--ink);border-radius:8px;pointer-events:none}
+.sign::before,.sign::after{
+  content:"";position:absolute;bottom:-27px;width:12px;height:20px;
+  background:linear-gradient(90deg, var(--rail-dark), var(--rail) 45%, var(--rail-dark));
+  border-radius:0 0 3px 3px;
+}
+.sign::before{left:20%}
+.sign::after{right:20%}
+.hole{display:grid;justify-items:center;gap:5px}
+.hole-num{
+  width:58px;height:58px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--enamel);color:var(--chalk);border:3px solid var(--chalk);
+  font-family:var(--display);font-size:30px;line-height:1;
+}
+.hole-par{font:800 12px/1 var(--body);letter-spacing:.1em;text-transform:uppercase}
+.sign-text{min-width:0}
+h1,.card h2,.hole-num{text-transform:uppercase;font-weight:900;font-synthesis:none}
+h1{margin:0;font-family:var(--display);font-size:clamp(26px, 7.6vw, 34px);line-height:1.04;letter-spacing:-.01em;text-wrap:balance}
+h1 .nm{display:block;white-space:nowrap}
+.sign-sub{margin:8px 0 0;font-weight:600;font-size:16px;line-height:1.35}
+.sign-when{margin:2px 0 0;font-weight:800;font-size:16px;line-height:1.35}
+
+/* ---------- the green ---------- */
+.play{display:grid;gap:12px}
+.play.leaving{opacity:0;transform:translateY(12px);transition:opacity .28s ease-in, transform .28s ease-in}
+.green{position:relative;border-radius:18px;box-shadow:0 20px 32px -16px rgba(0,0,0,.6)}
+#course{display:block;width:100%;border-radius:18px;touch-action:none;cursor:grab}
+#course:active{cursor:grabbing}
+.hint{margin:0;min-height:1.5em;color:var(--chalk-dim);font-weight:600;text-align:center;text-wrap:balance}
+.answer{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px 18px}
+
+.plank{
+  appearance:none;border:0;border-radius:10px;
+  background:linear-gradient(var(--enamel), var(--enamel)) top / 100% calc(100% - 5px) no-repeat, var(--enamel-edge);
+  color:#fff;
+  font:800 18px/1 var(--body);padding:16px 26px 19px;
+  display:inline-flex;align-items:center;justify-content:center;text-align:center;
+  text-decoration:none;cursor:pointer;
+  box-shadow:0 12px 18px -10px rgba(0,0,0,.5);
+  transition:transform .12s cubic-bezier(.2,.8,.2,1), filter .12s ease;
+}
+.plank:hover{filter:brightness(1.07)}
+.plank:active{transform:translateY(2px);filter:brightness(.94)}
+.plank:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+.textlink{
+  appearance:none;background:none;border:0;padding:10px 4px;cursor:pointer;
+  color:var(--chalk);font:600 16px/1.2 var(--body);
+  text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:5px;
+  text-decoration-color:rgba(245,243,234,.45);
+}
+.textlink:hover{text-decoration-color:var(--chalk)}
+.textlink:focus-visible{outline:3px solid var(--sun);outline-offset:2px;border-radius:4px}
+
+/* ---------- scorecard ---------- */
+.card{
+  background:var(--card);color:var(--ink);
+  border-radius:8px;padding:22px 20px 20px;
+  display:grid;gap:18px;
+  transform:rotate(-.6deg);
+  box-shadow:0 22px 34px -16px rgba(0,0,0,.6);
+}
+.card.enter{animation:handed .5s cubic-bezier(.16,1,.3,1) both}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:2px solid var(--print);padding-bottom:12px}
+.card h2{margin:0;font-family:var(--display);font-size:24px;line-height:1;color:var(--print)}
+.card h2:focus{outline:none}
+.card-meta{margin:0;text-align:right;font:700 14px/1.35 var(--body);color:var(--print)}
+.label{font:800 12px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--print)}
+.score{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.score th,.score td{border:1.5px solid var(--print);padding:8px 12px;text-align:left;vertical-align:middle}
+.score thead th{font:800 12px/1.2 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--print);background:rgba(31,107,58,.08)}
+.score tbody th{font-weight:700;width:44%;overflow-wrap:anywhere}
+.score td{height:52px}
+.pencil{font:400 32px/1 var(--hand);color:var(--pencil)}
+.pencil-soft{font-size:25px}
+.ring{position:relative;display:inline-block;padding:0 7px}
+.ring::after{content:"";position:absolute;inset:-5px -3px -1px -5px;border:1.6px solid var(--pencil);border-radius:50% 45% 52% 48%;transform:rotate(-8deg)}
+.tee{border:0;padding:0;margin:0;display:grid;gap:2px;min-width:0}
+.tee legend{padding:0;margin-bottom:10px}
+.tick{position:relative;display:inline-flex;align-items:center;gap:9px;font-weight:600;cursor:pointer;min-height:36px}
+.tick input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.tick .box{position:relative;flex:none;width:20px;height:20px;border:2px solid var(--print);border-radius:2px;background:var(--card)}
+.tick input:checked + .box::after{
+  content:"";position:absolute;left:-1px;top:-9px;width:28px;height:24px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 24'%3E%3Cpath d='M3 14c3 2 5 5 7 8 3-8 10-15 16-20' fill='none' stroke='%234B4B4F' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center/contain;
+}
+.tick input:focus-visible + .box{outline:3px solid var(--ink);outline-offset:3px}
+.rain-copy{margin:0;font-size:17px}
+.note{display:grid;gap:8px}
+#note{
+  width:100%;border:0;border-radius:0;resize:vertical;min-height:88px;
+  padding:2px 0 0;background:repeating-linear-gradient(to bottom, transparent 0 27px, rgba(31,107,58,.45) 27px 28px);
+  font:400 17px/28px var(--body);color:var(--ink);
+  scrollbar-color:var(--print) transparent;
+}
+#note:focus-visible{outline:3px solid var(--print);outline-offset:6px;border-radius:2px}
+.card-actions{display:flex;flex-wrap:wrap;gap:10px}
+.card-actions .plank{flex:1 1 auto;white-space:nowrap;font-size:17px;padding-inline:18px}
+.card-actions .outline{flex:1 0 auto}
+.card .plank:focus-visible{outline-color:var(--ink)}
+.outline{
+  appearance:none;background:transparent;border:2px solid var(--print);border-radius:10px;
+  color:var(--print);font:800 17px/1 var(--body);padding:15px 20px;cursor:pointer;
+  transition:background-color .15s ease;
+}
+.outline:hover{background:rgba(31,107,58,.08)}
+.outline:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.card-links{margin:-10px 0;display:flex;flex-wrap:wrap;gap:0 22px}
+.card-links a,.inklink{color:var(--print);font:700 16px/1.4 var(--body);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.card-links a{display:inline-block;padding-block:10px}
+.card-links a:focus-visible,.inklink:focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:3px}
+.inklink{appearance:none;background:none;border:0;padding:10px 0;cursor:pointer;justify-self:start}
+.card-foot{margin:0;padding-top:12px;border-top:2px solid var(--print);font-variant-numeric:tabular-nums}
+.replay{justify-self:center}
+
+@keyframes handed{
+  0%{transform:translateY(36px) rotate(-4deg);opacity:.2}
+  100%{transform:rotate(-.6deg);opacity:1}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+<main class="course">
+  <header class="sign" id="sign">
+    <span class="sign-paint" aria-hidden="true"></span>
+    <div class="hole" aria-hidden="true"><span class="hole-num">1</span><span class="hole-par">Par 1</span></div>
+    <div class="sign-text">
+      <h1 id="signTitle">Fancy a round?</h1>
+      <p class="sign-sub" id="signSub">A crazy golf date with Tayo.</p>
+      <p class="sign-when">Wed 21 Oct<br>Swing Yard, Dunsink</p>
+    </div>
+  </header>
+
+  <section class="play" id="play" aria-label="Play the hole">
+    <div class="green" id="green">
+      <canvas id="course" role="img" aria-label="A crazy golf hole. Drag back from the ball and let go to putt. The Yes cup is on the left. The No door is inside the windmill on the right."></canvas>
+    </div>
+    <p class="hint" id="hint" aria-live="polite">Drag back from the ball and let go to putt.</p>
+    <div class="answer">
+      <button class="plank" id="yes" type="button">Yes, I'm in</button>
+      <button class="textlink" id="gimme" type="button" hidden>Take the gimme</button>
+      <button class="textlink" id="rain" type="button">Wednesday doesn't work</button>
+    </div>
+  </section>
+
+  <section class="card" id="card" aria-labelledby="cardTitle" hidden>
+    <div class="card-head">
+      <h2 id="cardTitle" tabindex="-1">Scorecard</h2>
+      <p class="card-meta">Swing Yard, Dunsink<br>Wed 21 Oct 2026</p>
+    </div>
+
+    <table class="score" data-for="yes">
+      <thead><tr><th scope="col">Player</th><th scope="col">Hole 1 · Par 1</th></tr></thead>
+      <tbody>
+        <tr><th scope="row" id="youName">You</th><td><span class="pencil" id="scoreYou">1</span></td></tr>
+        <tr><th scope="row">Tayo</th><td><span class="pencil pencil-soft">on the 21st</span></td></tr>
+      </tbody>
+    </table>
+
+    <fieldset class="tee" data-for="yes">
+      <legend class="label">Tee time</legend>
+      <label class="tick"><input type="radio" name="tee" id="tee-afternoon" value="in the afternoon"><span class="box"></span>Afternoon</label>
+      <label class="tick"><input type="radio" name="tee" id="tee-afterwork" value="after work" checked><span class="box"></span>After work</label>
+      <label class="tick"><input type="radio" name="tee" id="tee-evening" value="later in the evening"><span class="box"></span>Later evening</label>
+    </fieldset>
+
+    <p class="rain-copy" data-for="rain" hidden>No problem. Tell Tayo when works instead.</p>
+
+    <fieldset class="tee" data-for="rain" hidden>
+      <legend class="label">How about</legend>
+      <label class="tick"><input type="radio" name="alt" id="alt-week" value="later this week" checked><span class="box"></span>Later this week</label>
+      <label class="tick"><input type="radio" name="alt" id="alt-weekend" value="this weekend"><span class="box"></span>This weekend</label>
+      <label class="tick"><input type="radio" name="alt" id="alt-next" value="next week"><span class="box"></span>Next week</label>
+    </fieldset>
+
+    <div class="note">
+      <label class="label" for="note">Note to Tayo</label>
+      <textarea id="note" rows="3"></textarea>
+    </div>
+
+    <div class="card-actions">
+      <a class="plank" id="wa" href="https://wa.me/" target="_blank" rel="noopener">Send on WhatsApp</a>
+      <button class="outline" id="copy" type="button">Copy note</button>
+    </div>
+
+    <p class="card-links" data-for="yes">
+      <a id="cal" href="https://calendar.google.com/" target="_blank" rel="noopener">Add to Google Calendar</a>
+      <a href="https://www.google.com/maps/search/?api=1&amp;query=Swing+Yard+Dunsink+Dublin" target="_blank" rel="noopener">Directions</a>
+    </p>
+
+    <p class="card-foot label" id="teeOff" data-for="yes">Tee-off in 7 days</p>
+    <button class="inklink" id="back" type="button" data-for="rain" hidden>Actually, Wednesday works</button>
+  </section>
+
+  <button class="textlink replay" id="replay" type="button" hidden>Play the hole again</button>
+</main>
+
+<script>
+(() => {
+  const FROM = 'Tayo';
+  const TAYO_WA = ''; // Tayo's WhatsApp number, digits only, international format (e.g. 3538XXXXXXXX)
+  const KEY = 'swingyard-hole-v3';
+  const DATE = new Date(2026, 9, 21);
+  const reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+  const $ = (id) => document.getElementById(id);
+  const cssv = getComputedStyle(document.documentElement);
+  const tok = (n) => cssv.getPropertyValue(n).trim();
+  const COL = {
+    turf: tok('--turf'), turfDeep: tok('--turf-deep'), turfLite: tok('--turf-lite'),
+    rail: tok('--rail'), railDark: tok('--rail-dark'), railLite: tok('--rail-lite'),
+    enamel: tok('--enamel'), enamelEdge: tok('--enamel-edge'), sun: tok('--sun'),
+    chalk: tok('--chalk'), ink: tok('--ink')
+  };
+  const store = {
+    get(){ try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } },
+    set(v){ try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} },
+    clear(){ try { localStorage.removeItem(KEY); } catch (e) {} }
+  };
+
+  const play = $('play'), green = $('green'), canvas = $('course'), ctx = canvas.getContext('2d');
+  const hint = $('hint'), yesBtn = $('yes'), gimmeBtn = $('gimme'), rainBtn = $('rain');
+  const card = $('card'), replay = $('replay'), note = $('note'), wa = $('wa'), cal = $('cal'), copyBtn = $('copy');
+
+  /* ---------- her name from the link (#Amara) ---------- */
+  let herName = '';
+  function readName(){
+    let raw = '';
+    try { raw = decodeURIComponent((location.hash || '').slice(1)); } catch (e) {}
+    raw = raw.replace(/[_~.\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!raw || raw.length > 24 || /[^A-Za-zÀ-ÿ' ]/.test(raw)) return '';
+    return raw.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
+
+  /* ---------- carpet texture ---------- */
+  function carpet(base, lite, dark, count){
+    const c = document.createElement('canvas'); c.width = c.height = 96;
+    const x = c.getContext('2d');
+    x.fillStyle = base; x.fillRect(0, 0, 96, 96);
+    for (let i = 0; i < count; i++){
+      x.globalAlpha = .3 + Math.random() * .45;
+      x.fillStyle = Math.random() < .5 ? lite : dark;
+      x.fillRect((Math.random() * 96) | 0, (Math.random() * 96) | 0, 1, Math.random() < .35 ? 2 : 1);
+    }
+    x.globalAlpha = 1;
+    return c;
+  }
+  const turfTile = carpet(COL.turf, COL.turfLite, '#24642F', 2600);
+  try { document.body.style.backgroundImage = 'url(' + carpet(COL.turfDeep, '#1F4F2B', '#112F19', 1800).toDataURL() + ')'; } catch (e) {}
+
+  /* ---------- geometry ---------- */
+  const R = 14, BR = 7, CUP_R = 11;
+  let cw = 0, ch = 0, dpr = 1;
+  let tee = { x: 0, y: 0 }, cup = { x: 0, y: 0 }, wm = { x: 0, y: 0 }, isle = { x: 0, y: 0, r: 24 };
+  const staticLayer = document.createElement('canvas'), sctx = staticLayer.getContext('2d');
+
+  function labelFont(px){
+    let loaded = false;
+    try { document.fonts.forEach((f) => { if (f.family.replace(/["']/g, '') === 'Bungee' && f.status === 'loaded') loaded = true; }); } catch (e) {}
+    return (loaded ? '400 ' : '900 ') + px + 'px Bungee, "Arial Black", sans-serif';
+  }
+  function rr(c, x, y, w, h, r){
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+  function wmBox(){
+    return { x1: wm.x - 30, x2: wm.x + 30, y1: wm.y - 10, y2: wm.y + 52, d1: wm.x - 11, d2: wm.x + 11 };
+  }
+
+  function layout(){
+    const w = green.clientWidth;
+    if (!w) return;
+    const oldW = cw, oldH = ch;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cw = w;
+    const chrome = $('sign').offsetHeight - 6 + hint.offsetHeight + document.querySelector('.answer').offsetHeight + 14 + 24 + 64;
+    const room = (window.innerHeight || 800) - chrome;
+    ch = Math.round(Math.max(300, Math.min(cw * 1.18, 470, room)));
+    canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
+    canvas.style.height = ch + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    tee = { x: cw * .5, y: ch - R - 46 };
+    cup = { x: Math.round(cw * .28), y: Math.round(ch * .27) };
+    wm = { x: Math.round(cw * .72), y: Math.round(ch * .2) };
+    isle = { x: Math.round(cw * .5), y: Math.round(ch * .55), r: 24 };
+    if (strokes === 0 && (state === 'rest' || state === 'aim')) { ball.x = tee.x; ball.y = tee.y; }
+    else if (oldW && oldH) { ball.x *= cw / oldW; ball.y *= ch / oldH; }
+    renderStatic();
+  }
+
+  function renderStatic(){
+    staticLayer.width = Math.round(cw * dpr); staticLayer.height = Math.round(ch * dpr);
+    const c = sctx;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, cw, ch);
+
+    // timber rails
+    rr(c, 0, 0, cw, ch, 18); c.fillStyle = COL.rail; c.fill();
+    c.save();
+    rr(c, 0, 0, cw, ch, 18); c.clip();
+    c.strokeStyle = COL.railDark; c.lineWidth = 1;
+    const grain = (x1, y1, x2, y2, horiz) => {
+      c.save(); c.beginPath(); c.rect(x1, y1, x2 - x1, y2 - y1); c.clip();
+      for (let i = 0; i < 9; i++){
+        c.globalAlpha = .18 + Math.random() * .2;
+        c.beginPath();
+        if (horiz){
+          const y = y1 + 2 + Math.random() * (y2 - y1 - 4);
+          c.moveTo(x1, y);
+          for (let x = x1; x <= x2; x += 40) c.quadraticCurveTo(x + 20, y + (Math.random() - .5) * 2.4, x + 40, y);
+        } else {
+          const x = x1 + 2 + Math.random() * (x2 - x1 - 4);
+          c.moveTo(x, y1);
+          for (let y = y1; y <= y2; y += 40) c.quadraticCurveTo(x + (Math.random() - .5) * 2.4, y + 20, x, y + 40);
+        }
+        c.stroke();
+      }
+      c.restore();
+    };
+    grain(0, 0, cw, R, true); grain(0, ch - R, cw, ch, true);
+    grain(0, R, R, ch - R, false); grain(cw - R, R, cw, ch - R, false);
+    c.restore();
+    c.globalAlpha = 1;
+
+    // turf
+    c.save();
+    rr(c, R, R, cw - 2 * R, ch - 2 * R, 8);
+    c.fillStyle = c.createPattern(turfTile, 'repeat'); c.fill();
+    c.clip();
+    c.lineWidth = 6; c.strokeStyle = 'rgba(8,24,12,.3)';
+    rr(c, R, R, cw - 2 * R, ch - 2 * R, 8); c.stroke();
+    c.restore();
+    c.strokeStyle = COL.railDark; c.lineWidth = 3;
+    rr(c, R - 1.5, R - 1.5, cw - 2 * R + 3, ch - 2 * R + 3, 9.5); c.stroke();
+    // rail top face
+    c.strokeStyle = COL.railLite; c.lineWidth = 2; c.globalAlpha = .8;
+    rr(c, R - 5, R - 5, cw - 2 * R + 10, ch - 2 * R + 10, 12); c.stroke();
+    c.globalAlpha = 1;
+
+    // brick planter splitting the YES and NO lines
+    c.fillStyle = 'rgba(5,20,10,.3)';
+    c.beginPath(); c.ellipse(isle.x + 4, isle.y + 5, isle.r + 2, isle.r * .9, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#A04B30'; c.beginPath(); c.arc(isle.x, isle.y, isle.r, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(232,220,200,.75)'; c.lineWidth = 1.2;
+    c.beginPath(); c.arc(isle.x, isle.y, isle.r - 3.5, 0, Math.PI * 2); c.stroke();
+    for (let k = 0; k < 14; k++){
+      const a = k / 14 * Math.PI * 2 + (k % 2 ? .1 : 0);
+      c.beginPath();
+      c.moveTo(isle.x + Math.cos(a) * (isle.r - 7), isle.y + Math.sin(a) * (isle.r - 7));
+      c.lineTo(isle.x + Math.cos(a) * isle.r, isle.y + Math.sin(a) * isle.r);
+      c.stroke();
+    }
+    c.fillStyle = '#3B2A1C'; c.beginPath(); c.arc(isle.x, isle.y, isle.r - 7, 0, Math.PI * 2); c.fill();
+    [[-6, -4, 9, '#1E5A2A'], [6, -6, 8, '#2A6F35'], [2, 6, 9, '#246431'], [-7, 6, 6, '#2F7A3B'], [8, 5, 6, '#1E5A2A']].forEach((b) => {
+      c.fillStyle = b[3]; c.beginPath(); c.arc(isle.x + b[0], isle.y + b[1], b[2], 0, Math.PI * 2); c.fill();
+    });
+
+    // tee mat
+    rr(c, tee.x - 27, tee.y - 19, 54, 38, 6);
+    c.fillStyle = 'rgba(10,30,15,.42)'; c.fill();
+    c.fillStyle = 'rgba(245,243,234,.55)';
+    c.beginPath(); c.arc(tee.x, tee.y, 1.6, 0, Math.PI * 2); c.fill();
+
+    // tunnel exit pipe in the left rail
+    c.fillStyle = '#7E858C'; rr(c, 1, cup.y - 12, R + 3, 24, 4); c.fill();
+    c.fillStyle = '#5E646A'; c.fillRect(1, cup.y - 12, 3, 24);
+    c.fillStyle = '#0D130F'; c.beginPath(); c.ellipse(R + 2, cup.y, 3.5, 9, 0, 0, Math.PI * 2); c.fill();
+
+    // cup
+    const g = c.createRadialGradient(cup.x - 3, cup.y - 3, 1, cup.x, cup.y, CUP_R);
+    g.addColorStop(0, '#070D09'); g.addColorStop(1, '#1A2E1F');
+    c.fillStyle = g; c.beginPath(); c.arc(cup.x, cup.y, CUP_R, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(245,243,234,.7)'; c.lineWidth = 1.6;
+    c.beginPath(); c.arc(cup.x, cup.y, CUP_R, 0, Math.PI * 2); c.stroke();
+
+    // windmill: shadow, body, roof, door, plaque
+    const b = wmBox();
+    c.fillStyle = 'rgba(5,20,10,.32)';
+    c.beginPath(); c.ellipse(wm.x + 7, b.y2 + 3, 40, 8, 0, 0, Math.PI * 2); c.fill();
+    c.beginPath();
+    c.moveTo(b.x1, b.y2); c.lineTo(b.x2, b.y2); c.lineTo(wm.x + 20, b.y1); c.lineTo(wm.x - 20, b.y1); c.closePath();
+    c.fillStyle = COL.enamel; c.fill();
+    c.save(); c.clip();
+    c.fillStyle = 'rgba(0,0,0,.14)'; c.fillRect(wm.x, b.y1, 40, b.y2 - b.y1);
+    c.restore();
+    c.strokeStyle = COL.chalk; c.lineWidth = 2.5; c.lineJoin = 'round'; c.stroke();
+    c.beginPath(); c.moveTo(wm.x - 25, b.y1 + 1); c.lineTo(wm.x + 25, b.y1 + 1); c.lineTo(wm.x, b.y1 - 22); c.closePath();
+    c.fillStyle = '#3A2A20'; c.fill();
+    c.beginPath();
+    c.moveTo(b.d1, b.y2); c.lineTo(b.d1, b.y2 - 13); c.arc(wm.x, b.y2 - 13, 11, Math.PI, 0); c.lineTo(b.d2, b.y2); c.closePath();
+    c.fillStyle = '#120E0A'; c.fill();
+    c.strokeStyle = COL.chalk; c.lineWidth = 2; c.stroke();
+    c.fillStyle = 'rgba(245,243,234,.88)'; c.font = labelFont(14);
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText('NO', wm.x, b.y2 + 17);
+  }
+
+  /* ---------- state ---------- */
+  let state = 'rest';            // rest | aim | rolling | auto | tunnel | sinking | holed
+  let rot = Math.PI / 4;
+  let strokes = 0, how = '', lipped = false, blockedThisShot = false, mode = 'play';
+  let ball = { x: 0, y: 0, vx: 0, vy: 0, r: BR, hidden: false, inside: false };
+  let aim = null, sinkT = 0, sinkFrom = null, autoT = 0, autoFrom = null, tunnelT = 0, flagLift = 0;
+
+  function bladeBlocksDoor(){
+    for (let k = 0; k < 4; k++){
+      let a = (rot + k * Math.PI / 2) % (Math.PI * 2);
+      if (a < 0) a += Math.PI * 2;
+      if (Math.abs(a - Math.PI / 2) < .3) return true;
+    }
+    return false;
+  }
+
+  function collide(){
+    // rails
+    const minX = R + BR, maxX = cw - R - BR, minY = R + BR, maxY = ch - R - BR;
+    if (ball.x < minX){ ball.x = minX; ball.vx = Math.abs(ball.vx) * .72; }
+    if (ball.x > maxX){ ball.x = maxX; ball.vx = -Math.abs(ball.vx) * .72; }
+    if (ball.y < minY){ ball.y = minY; ball.vy = Math.abs(ball.vy) * .72; }
+    if (ball.y > maxY){ ball.y = maxY; ball.vy = -Math.abs(ball.vy) * .72; }
+
+    // brick planter
+    {
+      const dx = ball.x - isle.x, dy = ball.y - isle.y, d = Math.hypot(dx, dy) || .001, min = isle.r + BR;
+      if (d < min){
+        const nx = dx / d, ny = dy / d;
+        ball.x = isle.x + nx * min; ball.y = isle.y + ny * min;
+        const dot = ball.vx * nx + ball.vy * ny;
+        if (dot < 0){ ball.vx -= 1.7 * dot * nx; ball.vy -= 1.7 * dot * ny; }
+      }
+    }
+
+    // windmill door
+    const b = wmBox();
+    if (ball.vy < 0 && ball.x > b.d1 + 2 && ball.x < b.d2 - 2 && ball.y - BR < b.y2 && ball.y > b.y2 - 26){
+      if (bladeBlocksDoor()){
+        ball.y = b.y2 + BR; ball.vy = Math.abs(ball.vy) * .55; ball.vx *= .8;
+        blockedThisShot = true;
+      } else {
+        enterTunnel();
+      }
+      return;
+    }
+    // windmill walls
+    const qx = Math.max(b.x1, Math.min(ball.x, b.x2)), qy = Math.max(b.y1, Math.min(ball.y, b.y2));
+    let dx = ball.x - qx, dy = ball.y - qy, d = Math.hypot(dx, dy);
+    if (d < BR){
+      if (d === 0){ dx = 0; dy = 1; d = 1; ball.y = b.y2; }
+      const nx = dx / d, ny = dy / d;
+      ball.x = qx + nx * BR; ball.y = qy + ny * BR;
+      const dot = ball.vx * nx + ball.vy * ny;
+      if (dot < 0){ ball.vx -= 1.65 * dot * nx; ball.vy -= 1.65 * dot * ny; }
+    }
+  }
+
+  function cupCheck(scale){
+    const dx = cup.x - ball.x, dy = cup.y - ball.y, d = Math.hypot(dx, dy) || .001;
+    const s = Math.hypot(ball.vx, ball.vy);
+    if (d < CUP_R - 1){
+      if (s < 11){ sink(); return; }
+      if (!ball.inside){
+        ball.inside = true; lipped = true;
+        const px = -dy / d, py = dx / d, side = (ball.vx * px + ball.vy * py) >= 0 ? 1 : -1;
+        ball.vx = ball.vx * .7 + px * side * s * .25;
+        ball.vy = ball.vy * .7 + py * side * s * .25;
+      }
+    } else {
+      ball.inside = false;
+      if (d < 30 && s < 6){ ball.vx += dx / d * .14 * scale; ball.vy += dy / d * .14 * scale; }
+    }
+  }
+
+  function step(dt){
+    if (!reduce) rot = (rot + .0327 * dt) % (Math.PI * 2);
+
+    if (state === 'rolling'){
+      const sp = Math.hypot(ball.vx, ball.vy);
+      const n = Math.max(1, Math.ceil(sp * dt / 3));
+      for (let i = 0; i < n && state === 'rolling'; i++){
+        ball.x += ball.vx * dt / n; ball.y += ball.vy * dt / n;
+        collide();
+        if (state === 'rolling') cupCheck(dt / n);
+      }
+      if (state === 'rolling'){
+        const s = Math.hypot(ball.vx, ball.vy);
+        const ns = Math.max(0, s * Math.pow(.987, dt) - .03 * dt);
+        if (ns < .05){ ball.vx = 0; ball.vy = 0; state = 'rest'; onRest(); }
+        else { ball.vx *= ns / s; ball.vy *= ns / s; }
+      }
+    } else if (state === 'auto'){
+      autoT += dt * 16.667;
+      const p = Math.min(1, autoT / 560), e = 1 - Math.pow(1 - p, 3);
+      ball.x = autoFrom.x + (cup.x - autoFrom.x) * e;
+      ball.y = autoFrom.y + (cup.y - autoFrom.y) * e;
+      if (p >= 1) sink();
+    } else if (state === 'tunnel'){
+      tunnelT += dt * 16.667;
+      if (tunnelT > 750){
+        ball.hidden = false; ball.x = R + BR + 1; ball.y = cup.y; ball.vx = 5.8; ball.vy = 0;
+        state = 'rolling';
+      }
+    } else if (state === 'sinking'){
+      sinkT += dt * 16.667;
+      if (sinkT >= 260){ state = 'holed'; ball.hidden = true; onHoled(); }
+    }
+    if (state === 'holed' && flagLift < 1) flagLift = Math.min(1, flagLift + dt * .03);
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(staticLayer, 0, 0, cw, ch);
+
+    // flag pin
+    if (flagLift < 1){
+      const a = 1 - flagLift, lift = flagLift * 26;
+      ctx.save(); ctx.globalAlpha = a;
+      ctx.strokeStyle = 'rgba(5,20,10,.3)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(cup.x, cup.y); ctx.lineTo(cup.x + 20, cup.y + 9); ctx.stroke();
+      const top = cup.y - 52 - lift;
+      ctx.strokeStyle = COL.chalk; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(cup.x, cup.y - lift); ctx.lineTo(cup.x, top); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cup.x + 1, top); ctx.lineTo(cup.x + 42, top + 11); ctx.lineTo(cup.x + 1, top + 22); ctx.closePath();
+      ctx.fillStyle = COL.enamel; ctx.fill();
+      ctx.fillStyle = COL.chalk; ctx.font = labelFont(10);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('YES', cup.x + 16, top + 11.5);
+      ctx.restore();
+    }
+
+    // windmill sails
+    const b = wmBox();
+    for (let k = 0; k < 4; k++){
+      ctx.save();
+      ctx.translate(wm.x, wm.y);
+      ctx.rotate(rot + k * Math.PI / 2);
+      ctx.fillStyle = 'rgba(5,20,10,.18)'; ctx.fillRect(10, -4, 50, 13);
+      ctx.fillStyle = COL.chalk; ctx.fillRect(8, -7, 50, 13);
+      ctx.strokeStyle = 'rgba(28,26,21,.35)'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let x = 16; x < 58; x += 8){ ctx.moveTo(x, -7); ctx.lineTo(x, 6); }
+      ctx.moveTo(8, -.5); ctx.lineTo(58, -.5);
+      ctx.stroke();
+      ctx.strokeStyle = '#3A2A20'; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(58, 0); ctx.stroke();
+      ctx.restore();
+    }
+    ctx.fillStyle = '#3A2A20'; ctx.beginPath(); ctx.arc(wm.x, wm.y, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = COL.sun; ctx.beginPath(); ctx.arc(wm.x, wm.y, 2.2, 0, Math.PI * 2); ctx.fill();
+
+    // aim line
+    if (state === 'aim' && aim){
+      const v = aimVector();
+      if (v.len > 8){
+        const L = 24 + v.power * 120;
+        ctx.fillStyle = v.power < .5 ? COL.chalk : v.power < .8 ? COL.sun : COL.enamel;
+        for (let t = 16; t < L; t += 9){
+          ctx.beginPath(); ctx.arc(ball.x + v.dx * t, ball.y + v.dy * t, 2, 0, Math.PI * 2); ctx.fill();
+        }
+        const ex = ball.x + v.dx * (L + 6), ey = ball.y + v.dy * (L + 6);
+        ctx.beginPath();
+        ctx.moveTo(ex + v.dx * 8, ey + v.dy * 8);
+        ctx.lineTo(ex - v.dy * 6, ey + v.dx * 6);
+        ctx.lineTo(ex + v.dy * 6, ey - v.dx * 6);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+
+    // ball
+    if (!ball.hidden){
+      let x = ball.x, y = ball.y, r = BR;
+      if (state === 'sinking'){
+        const p = Math.min(1, sinkT / 260);
+        x = sinkFrom.x + (cup.x - sinkFrom.x) * p;
+        y = sinkFrom.y + (cup.y - sinkFrom.y) * p;
+        r = BR * (1 - .5 * p);
+      }
+      ctx.fillStyle = 'rgba(5,20,10,.35)';
+      ctx.beginPath(); ctx.ellipse(x + 2, y + 3, r, r * .8, 0, 0, Math.PI * 2); ctx.fill();
+      const g = ctx.createRadialGradient(x - r * .35, y - r * .4, r * .1, x, y, r);
+      g.addColorStop(0, '#FFFFFF'); g.addColorStop(1, '#D9D7CE');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(28,26,21,.16)';
+      [[.3, .2], [-.25, .35], [.05, -.3]].forEach((p) => { ctx.beginPath(); ctx.arc(x + p[0] * r, y + p[1] * r, .9, 0, Math.PI * 2); ctx.fill(); });
+    }
+  }
+
+  let last = performance.now();
+  function frame(t){
+    const dt = Math.min(2.5, Math.max(.2, (t - last) / 16.667));
+    last = t;
+    if (cw && !play.hidden){ step(dt); draw(); }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- input ---------- */
+  function point(e){
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (cw / r.width), y: (e.clientY - r.top) * (ch / r.height) };
+  }
+  function aimVector(){
+    const dx = aim.x0 - aim.x, dy = aim.y0 - aim.y, len = Math.hypot(dx, dy);
+    return { dx: len ? dx / len : 0, dy: len ? dy / len : 0, len, power: Math.min(1, len / 120) };
+  }
+  canvas.addEventListener('pointerdown', (e) => {
+    if (state !== 'rest' || mode !== 'play') return;
+    e.preventDefault();
+    const p = point(e);
+    aim = { x0: p.x, y0: p.y, x: p.x, y: p.y };
+    state = 'aim';
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (state !== 'aim' || !aim) return;
+    const p = point(e); aim.x = p.x; aim.y = p.y;
+  });
+  function release(){
+    if (state !== 'aim' || !aim) return;
+    const v = aimVector();
+    aim = null;
+    if (v.power < .07){ state = 'rest'; return; }
+    const speed = 2.2 + v.power * 13;
+    ball.vx = v.dx * speed; ball.vy = v.dy * speed;
+    strokes++; lipped = false; blockedThisShot = false; how = 'putt';
+    state = 'rolling';
+  }
+  canvas.addEventListener('pointerup', release);
+  canvas.addEventListener('pointercancel', () => { if (state === 'aim'){ aim = null; state = 'rest'; } });
+
+  /* ---------- outcomes ---------- */
+  function say(text){ if (hint.textContent !== text) hint.textContent = text; }
+
+  function enterTunnel(){
+    state = 'tunnel'; tunnelT = 0; ball.hidden = true; ball.vx = ball.vy = 0; how = 'tunnel';
+    say("That's the No door. The windmill tunnel comes out at Yes.");
+  }
+  function sink(){
+    if (state === 'sinking' || state === 'holed') return;
+    sinkFrom = { x: ball.x, y: ball.y };
+    ball.vx = ball.vy = 0; sinkT = 0; state = 'sinking';
+  }
+  function onRest(){
+    const d = Math.hypot(cup.x - ball.x, cup.y - ball.y);
+    let text;
+    if (lipped) text = 'Lipped out. Go again.';
+    else if (blockedThisShot) text = 'The windmill got in the way. Go again.';
+    else if (d < 40) text = 'So close. One more.';
+    else text = 'Stroke ' + strokes + '. Go again.';
+    if (strokes >= 3){ gimmeBtn.hidden = false; text = 'Stroke ' + strokes + '. You can take the gimme.'; }
+    say(text);
+  }
+  function scoreLine(){
+    if (how === 'tap') return 'Tapped in.';
+    if (how === 'gimme') return 'Gimme taken.';
+    if (how === 'tunnel') return 'Holed in ' + strokes + ', via the windmill.';
+    return strokes === 1 ? 'Hole in one.' : 'Holed in ' + strokes + '.';
+  }
+  function onHoled(){
+    say(scoreLine());
+    gimmeBtn.hidden = true;
+    try { if (navigator.vibrate) navigator.vibrate([20, 50, 40]); } catch (e) {}
+    store.set({ r: 'yes', how, strokes, when: when() });
+    setTimeout(() => showCard('yes', true), reduce ? 0 : 1100);
+  }
+  function tapIn(kind){
+    if (mode !== 'play' || state === 'sinking' || state === 'holed' || state === 'tunnel') return;
+    how = kind; aim = null;
+    if (kind === 'gimme') strokes++;
+    ball.vx = ball.vy = 0; ball.hidden = false;
+    if (reduce){ sinkFrom = { x: cup.x, y: cup.y }; sinkT = 260; state = 'sinking'; return; }
+    autoFrom = { x: ball.x, y: ball.y }; autoT = 0; state = 'auto';
+  }
+  yesBtn.addEventListener('click', () => tapIn('tap'));
+  gimmeBtn.addEventListener('click', () => tapIn('gimme'));
+
+  /* ---------- sign + scorecard ---------- */
+  function setSign(){
+    const t = $('signTitle'), s = $('signSub');
+    if (mode === 'yes'){ t.textContent = "It's a date."; s.textContent = scoreLine() + ' See you on the 21st.'; }
+    else if (mode === 'rain'){ t.textContent = 'Rain check?'; s.textContent = 'No pressure. Pick another day.'; }
+    else {
+      t.textContent = herName ? 'Fancy a round, ' : 'Fancy a round?';
+      if (herName){ const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = herName + '?'; t.appendChild(nm); }
+      s.textContent = 'A crazy golf date with ' + FROM + '.';
+    }
+    fitName();
+  }
+  function fitName(){
+    const nm = document.querySelector('#signTitle .nm'), t = $('signTitle');
+    if (!nm) return;
+    nm.style.fontSize = '';
+    let size = parseFloat(getComputedStyle(t).fontSize);
+    while (nm.scrollWidth > t.clientWidth && size > 16){ size -= 1; nm.style.fontSize = size + 'px'; }
+  }
+  function when(){ const r = document.querySelector('input[name="tee"]:checked'); return r ? r.value : 'after work'; }
+  function alt(){ const r = document.querySelector('input[name="alt"]:checked'); return r ? r.value : 'later this week'; }
+  function phrase(){ return mode === 'rain' ? alt() : when(); }
+
+  let dirty = false, prevWhen = '';
+  function compose(){
+    if (mode === 'rain') return "I'd love to play crazy golf with you, but Wednesday doesn't work for me. How about " + alt() + '?';
+    let t = "Yes! Crazy golf at Swing Yard on Wednesday 21 October. I'm free " + when() + '.';
+    if (how === 'putt') t += strokes === 1 ? ' Hole in one, by the way.' : ' Holed it in ' + strokes + '.';
+    if (how === 'tunnel') t += ' Holed it via the windmill.';
+    return t + ' ⛳';
+  }
+  function syncLinks(){
+    wa.textContent = TAYO_WA ? 'Send on WhatsApp' : 'Share on WhatsApp';
+    wa.href = (TAYO_WA ? 'https://wa.me/' + TAYO_WA : 'https://wa.me/') + '?text=' + encodeURIComponent(note.value);
+    cal.href = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+      + '&text=' + encodeURIComponent('Crazy golf with ' + FROM)
+      + '&dates=20261021/20261022'
+      + '&location=' + encodeURIComponent('Swing Yard, Dunsink, Dublin')
+      + '&details=' + encodeURIComponent('Tee time: ' + when() + '.');
+  }
+  function refreshNote(force){
+    const w = phrase();
+    if (force || !dirty){ note.value = compose(); dirty = false; }
+    else if (prevWhen && note.value.indexOf(prevWhen) !== -1) note.value = note.value.replace(prevWhen, w);
+    prevWhen = w;
+    syncLinks();
+  }
+  note.addEventListener('input', () => { dirty = true; syncLinks(); });
+  document.querySelectorAll('input[name="alt"]').forEach((r) => r.addEventListener('change', () => refreshNote(false)));
+  document.querySelectorAll('input[name="tee"]').forEach((r) => r.addEventListener('change', () => {
+    refreshNote(false);
+    if (mode === 'yes') store.set({ r: 'yes', how, strokes, when: when() });
+  }));
+
+  function fillScore(){
+    const el = $('scoreYou');
+    el.className = 'pencil';
+    if (how === 'tap') el.textContent = 'tap-in';
+    else if (how === 'gimme') el.textContent = strokes + ' (gimme)';
+    else { el.textContent = String(strokes); if (strokes === 1) el.classList.add('ring'); }
+    if (how === 'tap' || how === 'gimme') el.classList.add('pencil-soft');
+    $('youName').textContent = herName || 'You';
+  }
+  function teeOff(){
+    const now = new Date(), t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const days = Math.round((DATE - t0) / 864e5);
+    $('teeOff').textContent = days > 1 ? 'Tee-off in ' + days + ' days'
+      : days === 1 ? 'Tee-off tomorrow'
+      : days === 0 ? 'Tee-off today'
+      : 'Hope the round went well';
+  }
+
+  function showCard(next, animate){
+    mode = next;
+    document.querySelectorAll('[data-for]').forEach((el) => { el.hidden = el.dataset.for !== next; });
+    $('cardTitle').textContent = next === 'rain' ? 'Rain check' : 'Scorecard';
+    if (next === 'yes') fillScore();
+    refreshNote(true);
+    setSign();
+    const reveal = () => {
+      play.hidden = true; play.classList.remove('leaving');
+      card.hidden = false;
+      replay.hidden = next !== 'yes';
+      if (animate && !reduce){ card.classList.remove('enter'); void card.offsetWidth; card.classList.add('enter'); }
+      $('cardTitle').focus({ preventScroll: true });
+      if (animate){ try { $('sign').scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' }); } catch (e) {} }
+    };
+    if (animate && !reduce && !play.hidden){ play.classList.add('leaving'); setTimeout(reveal, 280); }
+    else reveal();
+  }
+  function showPlay(reset){
+    mode = 'play';
+    if (reset){
+      strokes = 0; how = ''; flagLift = 0; ball.hidden = false; ball.vx = ball.vy = 0;
+      state = 'rest'; gimmeBtn.hidden = true;
+      say('Drag back from the ball and let go to putt.');
+    }
+    card.hidden = true; replay.hidden = true; play.hidden = false;
+    layout();
+    if (reset){ ball.x = tee.x; ball.y = tee.y; }
+    setSign();
+  }
+
+  rainBtn.addEventListener('click', () => showCard('rain', true));
+  $('back').addEventListener('click', () => { showPlay(false); yesBtn.focus(); });
+  replay.addEventListener('click', () => { store.clear(); showPlay(true); window.scrollTo({ top: 0 }); });
+
+  copyBtn.addEventListener('click', () => {
+    const done = (label) => { copyBtn.textContent = label; setTimeout(() => { copyBtn.textContent = 'Copy note'; }, 2000); };
+    const fallback = () => { note.focus(); note.select(); done('Selected. Press copy'); };
+    try { navigator.clipboard.writeText(note.value).then(() => done('Copied'), fallback); }
+    catch (e) { fallback(); }
+  });
+
+  /* ---------- boot ---------- */
+  herName = readName();
+  window.addEventListener('hashchange', () => { herName = readName(); setSign(); if (mode === 'yes') fillScore(); });
+  window.addEventListener('resize', () => { fitName(); if (!play.hidden) layout(); });
+  teeOff();
+  layout();
+  ball.x = tee.x; ball.y = tee.y;
+  setSign();
+  refreshNote(true);
+  if (document.fonts && document.fonts.load){
+    document.fonts.load('400 14px Bungee').then(() => { if (cw) renderStatic(); }).catch(() => {});
+  }
+  if (document.fonts && document.fonts.ready){
+    document.fonts.ready.then(() => { fitName(); if (!play.hidden) layout(); });
+  }
+
+  const saved = store.get();
+  if (saved && saved.r === 'yes'){
+    how = saved.how || 'tap'; strokes = saved.strokes | 0; state = 'holed'; ball.hidden = true; flagLift = 1;
+    if (saved.when) document.querySelectorAll('input[name="tee"]').forEach((r) => { r.checked = r.value === saved.when; });
+    showCard('yes', false);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
